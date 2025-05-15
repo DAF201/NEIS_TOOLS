@@ -1,0 +1,21 @@
+{
+    "AI": {
+        "openai_key": "",
+        "prompts": ""
+    },
+    "Outlook": {
+        "THIS_ADDRESS": "",
+        "USER": ""
+    },
+    "DN": {
+        "NUM_OF_EMAILS_TO_READ": 20,
+        "DN_TEST_ADDRESS": "",
+        "DN_mail_To": "",
+        "DN_mail_CC": "",
+        "DN_HTML_BODY": ""
+    },
+    "Excel": {
+        "target_table": "",
+        "buffer_table": ""
+    }
+}
