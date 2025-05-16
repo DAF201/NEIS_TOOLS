@@ -4,7 +4,6 @@ from tkinter.filedialog import askopenfilename
 from os import path
 from excel import get_GR_status
 from config import CONFIG
-from gc import collect
 from print_log import message
 Tk().withdraw()  # Hide the root window
 
@@ -78,9 +77,6 @@ def request_for_DN() -> str:
 
         # send
         mail.Send()
-
-        # clean grabage
-        collect()
 
         # return name
         return file_data[0]

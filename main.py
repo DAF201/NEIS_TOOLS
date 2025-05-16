@@ -23,7 +23,7 @@ while (1):
 
 
 try:
-    TARGET_TABLE_workbook.Close(False)
+    TARGET_TABLE_WORKBOOK.Close(False)
 except:
     pass
 try:
@@ -31,7 +31,7 @@ try:
 except:
     pass
 try:
-    BUFFER_TABLE_workbook.Close(False)
+    BUFFER_TABLE_WORKBOOK.Close(False)
 except:
     pass
 try:

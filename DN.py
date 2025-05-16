@@ -2,8 +2,8 @@ import openai
 from json import loads
 from config import CONFIG
 from outlook import get_unread_mails
-from excel import search_excel_PB, find_next_blank_row, copy_row, edit_buffer_table
-from print_log import message
+from excel import PB_search, find_next_blank_row, copy_row, edit_buffer_table, clean_excel
+from print_log import message, alert, get_line
 openai.api_key = CONFIG["AI"]["openai_key"]
 
 # provide email to AI, let the AI extract infomation
@@ -11,7 +11,7 @@ openai.api_key = CONFIG["AI"]["openai_key"]
 
 def get_DN_info(msg) -> dict:
     response = openai.ChatCompletion.create(
-        model="gpt-4-turbo",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content":
              """
@@ -19,13 +19,13 @@ def get_DN_info(msg) -> dict:
              IN THE OUTPUT, YOU WILL OUTPUT EXACTLY LIKE \{"DN":********, "DEST":"**", PB:"PB-*****", "NUM":"***", "VALID":"*"\}
              YOU WILL NEED TO REACH THROUGH THE EMAIL TO FIND THOSE INFORMATIONS AND FILL IN THE CORRECT PLACE.
              DN STAND FOR DELIVERY NUMBER, WHICH IS A 8 DIGITS NUMBER
-             DEST STAND FOR DESTINATION, WHICH IS THE SHIPPING DESTINGATION
+             DEST STAND FOR DESTINATION, WHICH IS THE SHIPPING DESTINGATION, AND FOR CHINA, USE CN, FOR TAIWAN, USE TW, FOR HONGKONG, USE HK, IN THE VALUE.
              PB STAND FOR PB-NUMBER, WHICH IS A IDENTIFIER FOR COMPOENTS BEING SHIPPED, AND IT IS "PB-" CONCATE WITH A 5 DIGITS FOR NUMBER.
              NUM STAND FOR THE NUMBER OF THE COMPUNENTS TO BE SHIPPED.
              VALID STAND FOR IF YOU CAN FIND ALL VALUES FROM THE EMAIL. IF THERE IS AT LEAST ONE VALUE YOU CANNOT FIND, FILL WITH NA, AND SET VALID="0".
              IF YOU CAN FIND ALL VALUES FROM THE EMAIL, VALID="1".
              PLASE NOTE, FOR DESTINATION, THE ZANKER AND SC ARE THE SAME, YOU SHOULD USE SC FOR BOTH CASE.
-             ALSO, WHEN YOU CANNOT FIND DN, OR TOLD NO DN, IF THE EMAIL SAID FXSJ, VENDER POOL, STOCK, THIS MEANS THE DN AND DEST ARE BOTH "FXSJ", AND THIS IS STILL VALID=1 CASE.
+             ALSO, WHEN YOU CANNOT FIND DN, OR TOLD NO DN, IF THE EMAIL SAID FXSJ, VENDER POOL, STOCK, THIS MEANS THE DN IS "FXSJ" AND DEST IS ALSO "FXSJ", AND THIS IS STILL VALID=1 CASE.
              IN ALL CASES, YOUR RETURN VALUES SHOULD BE STRING, AND THE VALUE SHOULD BE ROUNDED BY " TO MAKE JSON LOADABLE.
              """},
             {"role": "user", "content": msg}
@@ -39,7 +39,11 @@ def get_DN_info(msg) -> dict:
 
 
 def check_new_DN():
-    message(__name__, "FILTERING DN INFOMATION")
+    message(__name__, "CLEANING BUFFER TABLE")
+    clean_excel()
+    message(__name__, "CLEANING DONE")
+
+    message(__name__, "EXTRACTING DN INFOMATION FROM EMAIL")
     emails = get_unread_mails()
     dn_info = []
     valid_dn = []
@@ -52,19 +56,22 @@ def check_new_DN():
                 valid_dn.append(dn)
         except:
             continue
-    message(__name__, "FILTERING COMPLETE")
+    message(__name__, "EXTRACTING COMPLETE")
     return valid_dn
-    # return dn_info
 
 
 def append_new_DN_to_excel(new_dn: list):
     message(__name__, "ADDING DN TO SHEET")
     for dn in new_dn:
         try:
-            src_row = search_excel_PB(dn)
-            target_row = find_next_blank_row()
-            copy_row(src_row, target_row)
-            edit_buffer_table(dn, target_row)
-        except:
+            # search for the PB, get all possbile rows
+            source_rows = PB_search(dn)
+            # for each row, copy to buffer, and edit data
+            for source_row in source_rows:
+                target_row = find_next_blank_row()
+                copy_row(source_row, target_row)
+                edit_buffer_table(dn, target_row)
+        except Exception as e:
+            alert(__name__, get_line(), e)
             continue
-    message(__name__,"ADDING COMPLETE")
+    message(__name__, "ADDING COMPLETE")

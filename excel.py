@@ -1,5 +1,4 @@
 import win32com.client
-from gc import collect
 from config import CONFIG
 from json import loads
 from print_log import message
@@ -13,26 +12,24 @@ try:
     TARGET_TABLE.Visible = False
 except:
     pass
-TARGET_TABLE_workbook = TARGET_TABLE.Workbooks.Open(
+TARGET_TABLE_WORKBOOK = TARGET_TABLE.Workbooks.Open(
     CONFIG["Excel"]["target_table"])
-TARGET_TABLE_SHEET = TARGET_TABLE_workbook.Sheets(1)
+TARGET_TABLE_SHEET = TARGET_TABLE_WORKBOOK.Sheets(1)
 
 BUFFER_TABLE = win32com.client.Dispatch("Excel.Application")
 try:
     BUFFER_TABLE.Visible = False
 except:
     pass
-BUFFER_TABLE_workbook = BUFFER_TABLE.Workbooks.Open(
+BUFFER_TABLE_WORKBOOK = BUFFER_TABLE.Workbooks.Open(
     CONFIG["Excel"]["buffer_table"])
-BUFFER_TABLE_SHEET = BUFFER_TABLE_workbook.Sheets(1)
+BUFFER_TABLE_SHEET = BUFFER_TABLE_WORKBOOK.Sheets(1)
 
 message(__name__, "LOADING COMPLETE")
 
 
 def get_GR_status(path: str) -> str:
-
     message(__name__, "LOADING GR TABLE")
-
     # get excel
     excel = win32com.client.Dispatch("excel.Application")
     try:
@@ -41,17 +38,13 @@ def get_GR_status(path: str) -> str:
         pass
     # open the selected excel from request DN
     workbook = excel.Workbooks.Open(path)
-
     # Get the last sheet
     sheet = workbook.Sheets(workbook.Sheets.Count)
-
     message(__name__, "LOADING COMPLETE")
-
     message(__name__, "READING GR SN")
     # Read A and B columns until A has no GR_data(sometime we have more pass than SN)
     row = 2
     GR_data = []
-
     # read column A and B
     while True:
         a_value = sheet.Cells(row, 1).Value
@@ -62,16 +55,11 @@ def get_GR_status(path: str) -> str:
         # Convert A to string to preserve formatting
         GR_data.append(((str(a_value))[:-2], b_value))
         row += 1
-
     # Close excel workbook without saving changes
     workbook.Close(SaveChanges=False)
     # close excel to release meoery
     excel.Quit()
-
     message(__name__, "READING COMPLETE, {} SN READ".format(len(GR_data)))
-
-    # clean grabage
-    collect()
 
     return build_html_table(GR_data)
 
@@ -108,41 +96,45 @@ def build_html_table(data: list) -> str:
   """
 
 
-def search_excel_PB(transaction: str | dict) -> int:
-    # this will search for the last appearance of the transaction based on PB number
+def PB_search(transaction: str | dict) -> list[int]:
+    message(__name__, "SEARCHING FOR TRANSACTION:{} IN TARGET TABLE".format(
+        transaction["PB"]))
 
-    # if not dictionary, load as dictionary
-    message(__name__, "SEARCHING FOR TRANSACTION: {}".format(
-        transaction['PB']))
-    if type(transaction) == str:
+    if isinstance(transaction, str):
         transaction = loads(transaction)
 
-    column_range = TARGET_TABLE_SHEET.Columns(3)
+    PB_value = transaction["PB"]
+    NUM_value = int(transaction["NUM"])  # Compare as string
 
-    found = column_range.Find(
-        What=transaction["PB"],
-        LookIn=1,
+    # Column C, Number of units from email
+    PB_col = TARGET_TABLE_SHEET.Columns(3)
+    row_nums = []
+
+    first_found = PB_col.Find(
+        What=PB_value,
+        LookIn=-4163,
         LookAt=1,
-        SearchDirection=-4121
+        SearchOrder=1,
+        SearchDirection=1
     )
 
-    if found:
-        message(__name__, "TRANSACTION FOUND AT ROW: {}".format(found.Row))
-        return found.Row
-    else:
-        message(__name__, "TRANSACTION NOT FOUND")
-        return 0
+    found = first_found
+    while found:
+        row = found.Row
+        num_in_row = int(TARGET_TABLE_SHEET.Cells(
+            row, 11).Value)  # Column K, GR number
 
+        if num_in_row == NUM_value:
+            message(__name__, "POSSIBLE MATCH FOUND AT ROW {}".format(row))
+            row_nums.append(row)
 
-def search_excel_DN(transaction: str | dict) -> bool:
-    if type(transaction) == str:
-        transaction = loads(transaction)
-    try:
-        search_range = BUFFER_TABLE_SHEET.Range("L:L")
-        found = search_range.Find(What=transaction["DN"], LookIn=1)
-    except:
-        return True
-    return found == None
+        found = PB_col.FindNext(found)
+        if found is None or found.Address == first_found.Address:
+            break
+
+    message(__name__, "SEARCHING DONE")
+
+    return row_nums
 
 
 def find_next_blank_row(start_row=1, max_columns=26) -> int:
@@ -167,7 +159,7 @@ def copy_row(source_row_num: int, target_row_num: int) -> None:
         BUFFER_TABLE_SHEET.Cells(target_row_num, col).Value = TARGET_TABLE_SHEET.Cells(
             source_row_num, col).Value
     # Save and clean up
-    BUFFER_TABLE_workbook.Save()
+    BUFFER_TABLE_WORKBOOK.Save()
 
 
 def edit_buffer_table(transaction: str | dict, row_number: int) -> int:
@@ -180,6 +172,32 @@ def edit_buffer_table(transaction: str | dict, row_number: int) -> int:
     BUFFER_TABLE_SHEET.Cells(row_number, 12).Value = transaction["DN"]
     BUFFER_TABLE_SHEET.Cells(row_number, 13).Value = transaction["NUM"]
     BUFFER_TABLE_SHEET.Cells(row_number, 14).Value = transaction["DEST"]
+    if transaction["DN"] == "SC":
+        BUFFER_TABLE_SHEET.Cells(row_number, 15).Value = "Driver"
 
+    # DN out, move to packing
+    BUFFER_TABLE_SHEET.Cells(row_number, 16).Value = "Packing"
+
+    # if not shipping to CN or TW, no pre-alert
+    if transaction["DEST"] not in ["CN", "TW"]:
+        BUFFER_TABLE_SHEET.Cells(row_number, 17).Value = "NA"
+
+    # if rework cell is not empty, SO DN and SCAN should be NA
+    if BUFFER_TABLE_SHEET.Cells(row_number, 4).Value is not None:
+        BUFFER_TABLE_SHEET.Cells(row_number, 19).Value = "NA"
+        BUFFER_TABLE_SHEET.Cells(row_number, 20).Value = "NA"
+        BUFFER_TABLE_SHEET.Cells(row_number, 21).Value = "NA"
     # Save changes
-    BUFFER_TABLE_workbook.Save()
+    BUFFER_TABLE_WORKBOOK.Save()
+
+
+def clean_excel():
+    used_range = BUFFER_TABLE_SHEET.UsedRange
+    last_row = used_range.Row + used_range.Rows.Count - 1  # Actual last used row
+    last_col = used_range.Column + used_range.Columns.Count - 1  # Actual last used column
+
+    BUFFER_TABLE_SHEET.Range(
+        BUFFER_TABLE_SHEET.Cells(1, 1),
+        BUFFER_TABLE_SHEET.Cells(last_row, last_col)
+    ).ClearContents()
+    BUFFER_TABLE_WORKBOOK.Save()
