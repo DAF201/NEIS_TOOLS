@@ -1,6 +1,10 @@
 import json
+import re
 CONFIG = {}
 DN_RECORD = []
+
+SERIAL_REGEX = "158\d{10}"
+
 with open("config.json", "r") as config:
     CONFIG = json.load(config)
 

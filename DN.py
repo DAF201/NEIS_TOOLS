@@ -2,7 +2,7 @@ import openai
 from json import loads
 from config import CONFIG
 from outlook import get_unread_mails
-from excel import PB_search, find_next_blank_row, copy_row, edit_buffer_table, clean_excel
+from excel import PB_search, GR_invoice_search, find_next_blank_row, copy_row, edit_buffer_table, clean_excel
 from print_log import message, alert, get_line
 openai.api_key = CONFIG["AI"]["openai_key"]
 
@@ -16,12 +16,13 @@ def get_DN_info(msg) -> dict:
             {"role": "system", "content":
              """
              YOU ARE A HELPFUL AGENT AND YOU WILL HELP READING THE EAMILS.
-             IN THE OUTPUT, YOU WILL OUTPUT EXACTLY LIKE \{"DN":********, "DEST":"**", PB:"PB-*****", "NUM":"***", "VALID":"*"\}
+             IN THE OUTPUT, YOU WILL OUTPUT EXACTLY LIKE \{"DN":********, "DEST":"**", PB:"PB-*****", "NUM":"***", "GR_NUMBER":"5202A*****", "VALID":"*"\}
              YOU WILL NEED TO REACH THROUGH THE EMAIL TO FIND THOSE INFORMATIONS AND FILL IN THE CORRECT PLACE.
-             DN STAND FOR DELIVERY NUMBER, WHICH IS A 8 DIGITS NUMBER
+             DN STAND FOR DELIVERY NUMBER, WHICH IS A 8 DIGITS NUMBER. SOMETIMES THE DN MAY CONCAT WITH DEST SUCH AS "87013010-SC".
              DEST STAND FOR DESTINATION, WHICH IS THE SHIPPING DESTINGATION, AND FOR CHINA, USE CN, FOR TAIWAN, USE TW, FOR HONGKONG, USE HK, IN THE VALUE.
              PB STAND FOR PB-NUMBER, WHICH IS A IDENTIFIER FOR COMPOENTS BEING SHIPPED, AND IT IS "PB-" CONCATE WITH A 5 DIGITS FOR NUMBER.
-             NUM STAND FOR THE NUMBER OF THE COMPUNENTS TO BE SHIPPED.
+             NUM STAND FOR THE NUMBER OF THE COMPUNENTS TO BE SHIPPED, USUALLY REPRESENTED AS A DECIMAL NUMBER CONCAT WITH A CHARACTER 'x'. WHEN PROCESSING DATA, REMOVE THE "x".
+             GR_NUMBER IS A UNIQUE ID FOR A TRANSACTION, AND IT ALWAYS START WITH 5202A THEN CONCAT TO 5 DIGITS OF NUMBERS.
              VALID STAND FOR IF YOU CAN FIND ALL VALUES FROM THE EMAIL. IF THERE IS AT LEAST ONE VALUE YOU CANNOT FIND, FILL WITH NA, AND SET VALID="0".
              IF YOU CAN FIND ALL VALUES FROM THE EMAIL, VALID="1".
              PLASE NOTE, FOR DESTINATION, THE ZANKER AND SC ARE THE SAME, YOU SHOULD USE SC FOR BOTH CASE.
@@ -41,9 +42,9 @@ def get_DN_info(msg) -> dict:
 def check_new_DN():
     message(__name__, "CLEANING BUFFER TABLE")
     clean_excel()
-    message(__name__, "CLEANING DONE")
+    message(__name__, "ALL CONTENTS REMOVED")
 
-    message(__name__, "EXTRACTING DN INFOMATION FROM EMAIL")
+    message(__name__, "READING DN")
     emails = get_unread_mails()
     dn_info = []
     valid_dn = []
@@ -56,22 +57,24 @@ def check_new_DN():
                 valid_dn.append(dn)
         except:
             continue
-    message(__name__, "EXTRACTING COMPLETE")
+    message(__name__, "READING COMPLETE")
     return valid_dn
 
 
 def append_new_DN_to_excel(new_dn: list):
-    message(__name__, "ADDING DN TO SHEET")
+    message(__name__, "APPENDING DN INFOMATION TO BUFFER TABLE")
     for dn in new_dn:
         try:
             # search for the PB, get all possbile rows
-            source_rows = PB_search(dn)
+            source_row = GR_invoice_search(dn)
+            if source_row == 0:
+                continue
             # for each row, copy to buffer, and edit data
-            for source_row in source_rows:
-                target_row = find_next_blank_row()
-                copy_row(source_row, target_row)
-                edit_buffer_table(dn, target_row)
+            # for source_row in source_rows:
+            target_row = find_next_blank_row()
+            copy_row(source_row, target_row)
+            edit_buffer_table(dn, target_row)
         except Exception as e:
             alert(__name__, get_line(), e)
             continue
-    message(__name__, "ADDING COMPLETE")
+    message(__name__, "DN INFORMATION ADDED ")

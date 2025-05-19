@@ -62,7 +62,7 @@ def get_GR_status(path: str) -> str:
         # Stop when column A is empty
         if a_value is None:
             break
-        
+
         # Convert A to string to preserve formatting
         if c_value == "":
             GR_data.append(((str(a_value))[:-2], b_value))
@@ -119,11 +119,11 @@ def build_html_table(data: list, has_config=0) -> str:
 
 
 def PB_search(transaction: str | dict) -> list[int]:
-    message(__name__, "SEARCHING FOR TRANSACTION:{} IN TARGET TABLE".format(
-        transaction["PB"]))
-
     if isinstance(transaction, str):
         transaction = loads(transaction)
+
+    message(__name__, "SEARCHING FOR TRANSACTION:{} IN TARGET TABLE".format(
+        transaction["PB"]))
 
     PB_value = transaction["PB"]
     NUM_value = int(transaction["NUM"])  # Compare as string
@@ -144,7 +144,7 @@ def PB_search(transaction: str | dict) -> list[int]:
     while found:
         row = found.Row
         num_in_row = int(TARGET_TABLE_SHEET.Cells(
-            row, 10).Value)
+            row, 11).Value)
 
         if num_in_row == NUM_value:
             message(__name__, "POSSIBLE MATCH FOUND AT ROW {}".format(row))
@@ -157,6 +157,27 @@ def PB_search(transaction: str | dict) -> list[int]:
     message(__name__, "SEARCHING DONE")
 
     return row_nums
+
+
+def GR_invoice_search(transaction: str | dict) -> int:
+    message(__name__, "SEARCHING FOR TRANSCATION:{} IN TARGET TABLE".format(
+        transaction["GR_NUMBER"]))
+    GR_invoice = transaction["GR_NUMBER"]
+    invoice_col = TARGET_TABLE_SHEET.Columns(22)
+    res = invoice_col.Find(
+        What=GR_invoice,
+        LookIn=-4163,
+        LookAt=1,
+        SearchOrder=1,
+        SearchDirection=1
+    )
+
+    if res == None:
+        message(__name__, "NO RESULE FOUND")
+        return 0
+    else:
+        message(__name__, "POSSIBLE MATCH FOUND AT ROW {}".format(res.Row))
+        return res.Row
 
 
 def find_next_blank_row(start_row=1, max_columns=26) -> int:
@@ -194,7 +215,7 @@ def edit_buffer_table(transaction: str | dict, row_number: int) -> int:
     BUFFER_TABLE_SHEET.Cells(row_number, 12).Value = transaction["DN"]
     BUFFER_TABLE_SHEET.Cells(row_number, 13).Value = transaction["NUM"]
     BUFFER_TABLE_SHEET.Cells(row_number, 14).Value = transaction["DEST"]
-    if transaction["DN"] == "SC":
+    if transaction["DEST"] == "SC":
         BUFFER_TABLE_SHEET.Cells(row_number, 15).Value = "Driver"
 
     # DN out, move to packing

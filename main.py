@@ -1,5 +1,4 @@
 from DN import *
-from test_msg import *
 from outlook import *
 from excel import *
 from print_log import *
@@ -11,12 +10,15 @@ while (1):
     if process == '1':
         prcessed_PB = request_for_DN()
         if prcessed_PB == "":
-            message(__name__, "Email not sent due to an exception happened while running")
+            message(
+                __name__, "Email not sent due to an exception happened while running")
         else:
-            message(__name__, "Request for {} sent".format(prcessed_PB))
+            message(__name__, "Email for {} sent".format(prcessed_PB))
     if process == '2':
         append_new_DN_to_excel(check_new_DN())
         message(__name__, "DN update complete")
+    if process == '4':
+        pass
     if process.lower() == 'quit':
         message(__name__, "Program Closing")
         break
