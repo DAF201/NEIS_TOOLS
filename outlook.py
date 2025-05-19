@@ -61,8 +61,8 @@ def request_for_DN() -> str:
         mail = OUTLOOK.CreateItem(0)
 
         # who to send to
-        mail.To = CONFIG["DN"]["DN_mail_To"]
-        mail.CC = CONFIG["DN"]["DN_mail_CC"]
+        mail.To = CONFIG["DN"]["DN_TEST_ADDRESS"]
+        mail.CC = CONFIG["DN"]["DN_TEST_ADDRESS"]
 
         # subject
         mail.Subject = "GR {} units of {} are done, please cut DN".format(

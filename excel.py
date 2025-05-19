@@ -30,70 +30,92 @@ message(__name__, "LOADING COMPLETE")
 
 def get_GR_status(path: str) -> str:
     message(__name__, "LOADING GR TABLE")
+
     # get excel
     excel = win32com.client.Dispatch("excel.Application")
     try:
         excel.Visible = False
     except:
         pass
+
     # open the selected excel from request DN
     workbook = excel.Workbooks.Open(path)
+
     # Get the last sheet
     sheet = workbook.Sheets(workbook.Sheets.Count)
     message(__name__, "LOADING COMPLETE")
     message(__name__, "READING GR SN")
+
     # Read A and B columns until A has no GR_data(sometime we have more pass than SN)
     row = 2
     GR_data = []
+    has_config = (sheet.Cells(1, 3).Value != None)
+
     # read column A and B
     while True:
         a_value = sheet.Cells(row, 1).Value
         b_value = sheet.Cells(row, 2).Value
+        c_value = ""
+        if sheet.Cells(row, 3).Value is not None:
+            c_value = sheet.Cells(row, 3).Value
+
         # Stop when column A is empty
         if a_value is None:
             break
+        
         # Convert A to string to preserve formatting
-        GR_data.append(((str(a_value))[:-2], b_value))
+        if c_value == "":
+            GR_data.append(((str(a_value))[:-2], b_value))
+        else:
+            GR_data.append(((str(a_value))[:-2], b_value, (str(c_value))[:-2]))
         row += 1
+
     # Close excel workbook without saving changes
     workbook.Close(SaveChanges=False)
-    # close excel to release meoery
+
+    # close excel to release memory
     excel.Quit()
     message(__name__, "READING COMPLETE, {} SN READ".format(len(GR_data)))
+    if not has_config:
+        return build_html_table(GR_data)
+    return build_html_table(GR_data, 1)
 
-    return build_html_table(GR_data)
 
-
-def build_html_table(data: list) -> str:
+def build_html_table(data: list, has_config=0) -> str:
 
     message(__name__, "STARTING BUILDING EMBEDDED HTML TABLE")
-    # Table styles: border for all cells, center align
+
     table_style = "border-collapse: collapse;"
     cell_style = "border: 1px solid black; padding: 4px; text-align: center;"
-
-    # Create table header
-    header = f"<tr><th style='{cell_style}'>SN</th><th style='{cell_style}'>Status</th></tr>"
-
-    # Create table rows from data
     rows = []
-    for a, b in data:
-        # Ensure column A is treated as a string
-        rows.append(
-            f"<tr><td style='{cell_style}'>{a}</td><td style='{cell_style}'>{b}</td></tr>")
+    if not has_config:
 
-    message(__name__, "BUILDING COMPLETE")
+        header = f"<tr><th style='{cell_style}'>SN</th><th style='{cell_style}'>Status</th></tr>"
 
-    # Return the full HTML table
+        for a, b in data:
+
+            rows.append(
+                f"<tr><td style='{cell_style}'>{a}</td><td style='{cell_style}'>{b}</td></tr>")
+
+        message(__name__, "BUILDING COMPLETE")
+    else:
+        header = f"<tr><th style='{cell_style}'>SN</th><th style='{cell_style}'>Status</th><th style='{cell_style}'>Config</th></tr>"
+
+        for a, b, c in data:
+
+            rows.append(
+                f"<tr><td style='{cell_style}'>{a}</td><td style='{cell_style}'>{b}</td><td style='{cell_style}'>{c}</td></tr>")
+
     return f"""
-  <html>
-    <body>
-      <table style="{table_style}">
-        {header}
-        {''.join(rows)}
-      </table>
-    </body>
-  </html>
-  """
+    <html>
+        <body>
+        <table style="{table_style}">
+            {header}
+            {''.join(rows)}
+        </table>
+        </body>
+    </html>
+    """
 
 
 def PB_search(transaction: str | dict) -> list[int]:
@@ -122,7 +144,7 @@ def PB_search(transaction: str | dict) -> list[int]:
     while found:
         row = found.Row
         num_in_row = int(TARGET_TABLE_SHEET.Cells(
-            row, 11).Value)  # Column K, GR number
+            row, 10).Value)
 
         if num_in_row == NUM_value:
             message(__name__, "POSSIBLE MATCH FOUND AT ROW {}".format(row))

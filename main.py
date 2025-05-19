@@ -11,7 +11,7 @@ while (1):
     if process == '1':
         prcessed_PB = request_for_DN()
         if prcessed_PB == "":
-            message(__name__, "Email not sent due to no file being selected")
+            message(__name__, "Email not sent due to an exception happened while running")
         else:
             message(__name__, "Request for {} sent".format(prcessed_PB))
     if process == '2':
