@@ -2,8 +2,9 @@ import openai
 from json import loads
 from config import CONFIG
 from outlook import get_unread_mails
-from excel import PB_search, GR_invoice_search, find_next_blank_row, copy_row, edit_buffer_table, clean_excel
+from excel import GR_invoice_search, find_next_blank_row, copy_row, edit_buffer_table, clean_excel
 from print_log import message, alert, get_line
+
 openai.api_key = CONFIG["AI"]["openai_key"]
 
 # provide email to AI, let the AI extract infomation
@@ -42,7 +43,7 @@ def get_DN_info(msg) -> dict:
 def check_new_DN():
     message(__name__, "CLEANING BUFFER TABLE")
     clean_excel()
-    message(__name__, "ALL CONTENTS REMOVED")
+    message(__name__, "ALL CLEAN")
 
     message(__name__, "READING DN")
     emails = get_unread_mails()

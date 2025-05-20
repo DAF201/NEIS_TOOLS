@@ -2,41 +2,31 @@ from DN import *
 from outlook import *
 from excel import *
 from print_log import *
+from GR import *
+import atexit
 
+atexit.register(excel_atexit_clean_up)
 
 while (1):
-    message(__name__, "Please select a step to continue:\n\t\t\t1. Sending DN request for a GR\n\t\t\t2. Checking Email for new DN\n\t\t\tEnter quit to Quit")
-    process = input()
-    if process == '1':
-        prcessed_PB = request_for_DN()
-        if prcessed_PB == "":
-            message(
-                __name__, "Email not sent due to an exception happened while running")
-        else:
-            message(__name__, "Email for {} sent".format(prcessed_PB))
-    if process == '2':
-        append_new_DN_to_excel(check_new_DN())
-        message(__name__, "DN update complete")
-    if process == '4':
-        pass
-    if process.lower() == 'quit':
-        message(__name__, "Program Closing")
-        break
+    message("main", "Please select a step to continue:\n\t\t\t1. Sending DN request for a GR\n\t\t\t2. Checking Email for new DN\n\t\t\t3. Build GR file\n\t\t\tEnter quit to Quit")
+    process = input("\t\t\t")
+    match(process):
+        case '1':
+            if request_for_DN() == "":
+                message(
+                    "main", "Email not sent due to an exception happened while running")
+            else:
+                message("main", "Email for sent")
 
+        case '2':
+            append_new_DN_to_excel(check_new_DN())
+            message("main", "DN update complete")
 
-try:
-    TARGET_TABLE_WORKBOOK.Close(False)
-except:
-    pass
-try:
-    TARGET_TABLE.Quit()
-except:
-    pass
-try:
-    BUFFER_TABLE_WORKBOOK.Close(False)
-except:
-    pass
-try:
-    BUFFER_TABLE.Quit()
-except:
-    pass
+        case '3':
+            build_GR()
+
+        case 'quit':
+            message("main", "Program closing")
+            break
+        case _:
+            continue
