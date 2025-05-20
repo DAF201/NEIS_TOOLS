@@ -24,9 +24,11 @@ while (1):
 
         case '3':
             build_GR()
+            message("main", "GR file ready")
 
         case 'quit':
             message("main", "Program closing")
             break
+
         case _:
             continue

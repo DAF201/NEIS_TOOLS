@@ -170,6 +170,9 @@ def build_GR() -> None:
     GR_FILE_SHEET2.Rows(1).Copy()
     GR_FILE_SHEET1.Rows(1).PasteSpecial(Paste=-4163)
 
+    # show all data for searching
+    GR_FILE_SHEET2.ShowAllData()
+
     # start from row 2
     sheet1_row_counter = 2
     for sn in sn_list:
@@ -181,6 +184,9 @@ def build_GR() -> None:
             SearchDirection=1
         )
 
+        if res == None:
+            message(__name__, "SN NOT FOUND")
+            continue
         # get the row, change SN to red
         GR_FILE_SHEET2.Cells(res.Row, 5).Font.Color = 255
         GR_FILE_SHEET2.Rows(res.Row).Copy()
