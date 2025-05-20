@@ -235,14 +235,7 @@ def edit_buffer_table(transaction: str | dict, row_number: int) -> int:
 
 
 def clean_excel():
-    used_range = BUFFER_TABLE_SHEET.UsedRange
-    last_row = used_range.Row + used_range.Rows.Count - 1  # Actual last used row
-    last_col = used_range.Column + used_range.Columns.Count - 1  # Actual last used column
-
-    BUFFER_TABLE_SHEET.Range(
-        BUFFER_TABLE_SHEET.Cells(1, 1),
-        BUFFER_TABLE_SHEET.Cells(last_row, last_col)
-    ).ClearContents()
+    BUFFER_TABLE_WORKBOOK.Cells.Clear()
     BUFFER_TABLE_WORKBOOK.Save()
 
 
