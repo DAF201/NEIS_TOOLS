@@ -1,21 +1,34 @@
 {
     "AI": {
-        "openai_key": "",
-        "prompts": ""
+        "openai_key": ""
     },
     "Outlook": {
         "THIS_ADDRESS": "",
-        "USER": ""
+        "USER": "",
+        "NUM_OF_EMAILS_TO_READ": 20
     },
     "DN": {
-        "NUM_OF_EMAILS_TO_READ": 20,
         "DN_TEST_ADDRESS": "",
         "DN_mail_To": "",
         "DN_mail_CC": "",
-        "DN_HTML_BODY": ""
+        "DN_SUBJECT": "",
+        "DN_HTML_BODY": "",
+        "GR_ERROR_BODY": ""
     },
     "Excel": {
         "target_table": "",
         "buffer_table": ""
+    },
+    "GR": {
+        "invoice_header": "",
+        "invoice_record": 0
+    },
+    "SFC": {
+        "mo_query_method": "POST",
+        "mo_query_api": "",
+        "mo_query_form": {
+            "modelName": "",
+            "modelNameSubmit": "Query"
+        }
     }
 }
