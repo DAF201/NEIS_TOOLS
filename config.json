@@ -30,5 +30,11 @@
             "modelName": "",
             "modelNameSubmit": "Query"
         }
-    }
+    },    
+    "ITN": {
+        "ITN_mail_To": "",
+        "ITN_Mail_CC": "",
+        "ITN_SUBJECT": "",
+        "ITN_BODY": ""
+    },
 }
