@@ -235,7 +235,7 @@ def edit_buffer_table(transaction: str | dict, row_number: int) -> int:
 
 
 def clean_excel():
-    BUFFER_TABLE_WORKBOOK.Cells.Clear()
+    BUFFER_TABLE_SHEET.Cells.Clear()
     BUFFER_TABLE_WORKBOOK.Save()
 
 

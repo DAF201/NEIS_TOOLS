@@ -8,7 +8,7 @@ import atexit
 atexit.register(excel_atexit_clean_up)
 
 while (1):
-    message("main", "Please select a step to continue:\n\t\t\t1. Sending DN request for a GR\n\t\t\t2. Checking Email for new DN\n\t\t\t3. Build GR file\n\t\t\tEnter quit to Quit")
+    message("main", "Please select a step to continue:\n\t\t\t1. Send DN request for a GR\n\t\t\t2. Check Email for new DN\n\t\t\t3. Build GR file\n\t\t\t4. Build GR file from FeedFile\n\t\t\tEnter quit to Quit")
     process = input("\t\t\t")
     match(process):
         case '1':
@@ -16,7 +16,7 @@ while (1):
                 message(
                     "main", "Email not sent due to an exception happened while running")
             else:
-                message("main", "Email for sent")
+                message("main", "Email sent")
 
         case '2':
             append_new_DN_to_excel(check_new_DN())
@@ -25,6 +25,9 @@ while (1):
         case '3':
             build_GR()
             message("main", "GR file ready")
+
+        case '4':
+            build_GR_from_feedfile()
 
         case 'quit':
             message("main", "Program closing")

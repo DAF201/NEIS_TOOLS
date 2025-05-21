@@ -5,39 +5,19 @@ from config import re, SERIAL_REGEX, CONFIG, update_config
 from print_log import *
 from os import path, rename
 from datetime import datetime
+import re
 Tk().withdraw()
-
-
 # I know this function's variables naming were garbage but this function is too long, and the logic requires many var with similar names
-def build_GR() -> None:
-    message(__name__, "START BUILDING GR FILE")
+
+
+def build_GR_from_feedfile():
+    message(__name__, "START BUILDING GR FILE FROM FEEDFILE")
     GR_file_path = askopenfilename(title="Select file to attach")
     if GR_file_path == "":
         return
 
-    gr_file_base_dir = GR_file_path.replace(
-        path.basename(GR_file_path), '')
-
     gr_file = win32com.client.Dispatch("Excel.Application")
     gr_file_workbook = gr_file.Workbooks.Open(GR_file_path)
-
-    # for easier access
-    gr_file_sheet1 = gr_file_workbook.Sheets(1)
-    gr_file_sheet2 = gr_file_workbook.Sheets(2)
-    gr_file_sheet3 = gr_file_workbook.Sheets(3)
-
-    # the PB Number of this GR
-    GR_PB = gr_file_sheet2.Cells(2, 1).Value
-
-    # get the starting sn number index, place holder
-    sn_start = 0
-
-    # get range of sn
-    sn_size = int(gr_file_sheet2.Cells(2, 4))
-
-    # sn end, which is the last sn of this wo, all sn should be with in, let say 100 units, start 01, the max is 100, so 01+100-1 is the max sn
-    sn_end = sn_start+sn_size-1
-
     # if this file is a feed file, then need to create other 2 sheets
     if gr_file_workbook.Sheets.Count == 1:
 
@@ -45,13 +25,15 @@ def build_GR() -> None:
 
         # create gr copy sheet and SN STT sheet
         gr_file_workbook.Sheets.Add(
-            Before=gr_file_sheet1).Name = "Sheet 2"
+            Before=gr_file_workbook.Sheets(1)).Name = "Sheet 2"
 
         gr_file_workbook.Sheets.Add(
-            After=gr_file_sheet2).Name = "Sheet 1"
+            After=gr_file_workbook.Sheets(2)).Name = "Sheet 1"
 
         # move the original sheet to index 2
-        gr_file_sheet3.Move(Before=gr_file_sheet2)
+        gr_file_workbook.Sheets(3).Move(Before=gr_file_workbook.Sheets(2))
+
+        sn_size = int(gr_file_workbook.Sheets(2).Cells(2, 4))
 
         message(__name__, "COLLECTING INFOMATION")
         # get SN start until get a valid sn or quit command
@@ -80,30 +62,60 @@ def build_GR() -> None:
         for row_num in range(2, sn_size+2):
 
             # set the SN to start + displacement(row_num-2 since row start from 1 and row 1 is useless)
-            gr_file_sheet2.Cells(
+            gr_file_workbook.Sheets(2).Cells(
                 row_num, 5).Value = sn_start+row_num-2
 
             # set to number, no digital
-            gr_file_sheet2.Cells(
+            gr_file_workbook.Sheets(2).Cells(
                 row_num, 5).NumberFormat = "0"
 
             # set to blue
-            gr_file_sheet2.Cells(
+            gr_file_workbook.Sheets(2).Cells(
                 row_num, 5).Font.Color = 16711680
 
             # put a PASS at the cordinating cell
-            gr_file_sheet2.Cells(
+            gr_file_workbook.Sheets(2).Cells(
                 row_num, 12).Value = "PASS"
 
         # save the GR file
         gr_file_workbook.Save()
+        gr_file.Quit()
         message(__name__, "GR FILE BUILT")
 
-    # now the GR file is ready, need to file data
 
+def build_GR() -> None:
+    message(__name__, "START BUILDING GR FILE")
+    GR_file_path = askopenfilename(title="Select file to attach")
+    if GR_file_path == "":
+        return
+
+    gr_file_base_dir = GR_file_path.replace(
+        path.basename(GR_file_path), '')
+
+    gr_file = win32com.client.Dispatch("Excel.Application")
+    gr_file_workbook = gr_file.Workbooks.Open(GR_file_path)
+
+    # for easier access
+    gr_file_sheet1 = gr_file_workbook.Sheets(1)
+    gr_file_sheet2 = gr_file_workbook.Sheets(2)
+    gr_file_sheet3 = gr_file_workbook.Sheets(3)
+
+    # the PB Number of this GR
+    GR_PB = gr_file_sheet2.Cells(2, 1).Value
+
+    # now the GR file is ready, need to file data
+    sn_start = sn_end = 0
     # get range of the sn (because this may also be a GR file, which does not knowns range)
-    sn_start = int(gr_file_sheet2.Cells(2, 5).Value)
-    sn_end = sn_start+int(gr_file_sheet2.Cells(2, 4).Value)-1
+    row_number = 2
+    max_columns = gr_file_sheet2.UsedRange.Columns.Count
+    sn_col = 5
+    for col in range(1, max_columns + 1):
+        cell_value = str(gr_file_sheet2.Cells(row_number, col).Value)
+        if re.match(SERIAL_REGEX, cell_value) != None:
+            sn_start = int(float(cell_value))
+            sn_end = sn_start+int(gr_file_sheet2.Cells(2, 4).Value)
+            sn_col = col
+    print(sn_start, sn_end)
 
     # remove the sheet 3
     gr_file_sheet3.Cells.Clear()
@@ -165,13 +177,16 @@ def build_GR() -> None:
 
     # remove sheet1, copy title from sheet2 to 1
     gr_file_sheet1.Cells.Clear()
-    sn_col = gr_file_sheet2.Columns(5)
+    sn_col = gr_file_sheet2.Columns(sn_col)
 
     gr_file_sheet2.Rows(1).Copy()
     gr_file_sheet1.Rows(1).PasteSpecial(Paste=-4163)
 
     # show all data for searching
-    gr_file_sheet2.ShowAllData()
+    try:
+        gr_file_sheet2.ShowAllData()
+    except:
+        pass
 
     # start from row 2
     sheet1_row_counter = 2
@@ -196,8 +211,19 @@ def build_GR() -> None:
 
     message(__name__, "PROCESSING COMPLETE, FINALIZING GR FILE")
 
-    # delete COL ret if exist
-    gr_file_sheet1.Columns(16).Delete()
+    formula_cell = gr_file_sheet2.Rows(2).Find(
+        What="=",            # Most formulas start with "="
+        LookIn=-4123,        # xlFormulas
+        LookAt=1,            # xlWhole
+        SearchOrder=1,       # xlByRows
+        SearchDirection=1    # xlNext
+    )
+
+    try:
+        # delete COL ret if exist
+        gr_file_sheet1.Columns(formula_cell.Column).Delete()
+    except:
+        pass
 
     now = datetime.now()
     today_date = now.strftime("%m")+now.strftime("%d")
