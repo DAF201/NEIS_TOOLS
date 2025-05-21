@@ -235,9 +235,11 @@ def edit_buffer_table(transaction: str | dict, row_number: int) -> int:
 
 
 def clean_excel():
-    BUFFER_TABLE_SHEET.Cells.Clear()
-    BUFFER_TABLE_WORKBOOK.Save()
-
+    try:
+        BUFFER_TABLE_SHEET.Cells.Clear()
+        BUFFER_TABLE_WORKBOOK.Save()
+    except:
+        pass
 
 def excel_atexit_clean_up():
     message(__name__, "CLEAR UP START")

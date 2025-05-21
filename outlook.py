@@ -3,8 +3,9 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from os import path
 from excel import get_GR_status
-from config import CONFIG
-from print_log import message
+from config import CONFIG, DN_REGEX
+from print_log import message, alert, get_line
+import re
 Tk().withdraw()  # Hide the root window
 
 # get outlook
@@ -44,7 +45,38 @@ def get_unread_mails() -> list:
     return results
 
 
+# send Email to request for ITN
+
+def request_for_ITN() -> bool:
+    try:
+        message(__name__, "INPUT DN FOR APPLYING FOR ITN NUMBER")
+        dn = ""
+        while True:
+            dn = input("\t\t\t")
+            if dn == "" or dn.lower() == "quit":
+                message(__name__, "ITN APPLICATION CANCELLED")
+                return False
+            if re.match(DN_REGEX, dn) != None:
+                break
+        attachment_path = askopenfilename(title="Select file to attach")
+        mail = OUTLOOK.CreateItem(0)
+        # mail.To = CONFIG["DN"]["DN_TEST_ADDRESS"]
+        # mail.CC = CONFIG["DN"]["DN_TEST_ADDRESS"]
+        mail.To = CONFIG["ITN"]["ITN_mail_To"]
+        mail.CC = CONFIG["ITN"]["ITN_mail_CC"]
+        mail.Subject = CONFIG["ITN"]["ITN_SUBJECT"].format(dn)
+        mail.Body = CONFIG["ITN"]["ITN_BODY"].format(
+            dn, CONFIG["Outlook"]["USER"])
+        mail.Attachments.Add(attachment_path)
+        mail.Send()
+        return True
+    except Exception as e:
+        alert(__name__, get_line(), e)
+        return False
+
 # send email to get a DN for a GR, all data comes from the excel
+
+
 def request_for_DN() -> str:
     try:
         # open a window to select a file

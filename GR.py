@@ -1,7 +1,7 @@
 import win32com.client
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
-from config import re, SERIAL_REGEX, CONFIG, update_config
+from config import SERIAL_REGEX, CONFIG, update_config
 from print_log import *
 from os import path, rename
 from datetime import datetime
