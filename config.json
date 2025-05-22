@@ -35,6 +35,7 @@
         "ITN_mail_To": "",
         "ITN_Mail_CC": "",
         "ITN_SUBJECT": "",
-        "ITN_BODY": ""
+        "ITN_BODY": "",
+        "WIP_OQC_api": ""
     },
 }
