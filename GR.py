@@ -2,12 +2,12 @@ import win32com.client
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from config import SERIAL_REGEX, CONFIG, update_config
-from print_log import *
+from helpers import *
 from os import path, rename
 from datetime import datetime
 import re
 Tk().withdraw()
-# I know this function's variables naming were garbage but this function is too long, and the logic requires many var with similar names
+# I know this function"s variables naming were garbage but this function is too long, and the logic requires many var with similar names
 
 
 def build_GR_from_feedfile():
@@ -39,7 +39,7 @@ def build_GR_from_feedfile():
         # get SN start until get a valid sn or quit command
         while (True):
             sn_start = input(
-                "please enter strating serial number, enter quit to Quit")
+                "please enter strating serial number, enter quit to Quit\n")
 
             if sn_start.lower() == "quit":
                 return
@@ -90,7 +90,7 @@ def build_GR() -> None:
         return
 
     gr_file_base_dir = GR_file_path.replace(
-        path.basename(GR_file_path), '')
+        path.basename(GR_file_path), "")
 
     gr_file = win32com.client.Dispatch("Excel.Application")
     gr_file_workbook = gr_file.Workbooks.Open(GR_file_path)
@@ -229,7 +229,7 @@ def build_GR() -> None:
     today_date = now.strftime("%m")+now.strftime("%d")
     # file name to save
     final_GR_file_name = r"{}{} {}_{}x_{}.xlsx".format(gr_file_base_dir, today_date, GR_PB, str(
-        len(sn_list)), CONFIG["GR"]["invoice_header"]+str(CONFIG["GR"]["invoice_record"]).rjust(4, '0'))
+        len(sn_list)), CONFIG["GR"]["invoice_header"]+str(CONFIG["GR"]["invoice_record"]).rjust(4, "0"))
 
     # save data
     gr_file_workbook.Save()
@@ -247,4 +247,4 @@ def build_GR() -> None:
         final_GR_file_name))
 
     # now go to do the GR on NV computer
-    exit(0)
+    # exit(0)
