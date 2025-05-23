@@ -25,12 +25,12 @@ def mo_query(model_name: str, module_number="") -> list:
     if module_number != "":
         for content in data:
             if content["Mo_Number"] == module_number:
-                return content
+                return [content]
     return data
 
 
-def carton_number(working_order: str) -> list:
-    url = CONFIG["SFC"]["WIP_OQC_api"].format(working_order)
+def WIP(working_order: str, department="OQC") -> list:
+    url = CONFIG["SFC"]["WIP_api"].format(department, working_order)
     html_content = requests.get(url).content.decode("big5", errors="ignore")
     soup = BeautifulSoup(html_content, "html.parser")
     rows = soup.find_all("tr")
@@ -39,18 +39,11 @@ def carton_number(working_order: str) -> list:
         "Line Name", "Group Name", "Error Flag", "In Station Time",
         "Container NO", "Carton NO", "Emp Name"
     ]
-    carton_id = []
     data = []
-    final_data = []
     for row in rows:
         cols = row.find_all("td")
         values = [col.get_text(strip=True).replace("\xa0", "") for col in cols]
         if len(values) == len(headers):
             row_dict = dict(zip(headers, values))
             data.append(row_dict)
-    for row in data:
-        if row["Carton NO"] not in carton_id:
-            carton_id.append(row["Carton NO"])
-            final_data.append(
-                {"In Station Time": row["In Station Time"], "Carton NO": row["Carton NO"], "Container NO": row["Container NO"]})
-    return final_data
+    return data

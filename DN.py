@@ -4,14 +4,59 @@ from config import CONFIG
 from outlook import get_unread_mails
 import win32com.client
 from helpers import message, alert, get_line
+from time import sleep
+import os
 
 openai.api_key = CONFIG["AI"]["openai_key"]
-TARGET_TABLE = TARGET_TABLE_SHEET = TARGET_TABLE_SHEET = BUFFER_TABLE = BUFFER_TABLE_WORKBOOK = BUFFER_TABLE_SHEET = ""
-
-EXCEL_INIT = 0
+TARGET_TABLE = TARGET_TABLE_WORKBOOK = TARGET_TABLE_SHEET = BUFFER_TABLE = BUFFER_TABLE_WORKBOOK = BUFFER_TABLE_SHEET = ""
 
 
-def excel_atexit_clean_up():
+def excel_init():
+    print("SYNCING ONEDRIVE")
+    with open(os.path.dirname(CONFIG["Excel"]["target_table"])+"sync.txt", "w") as sync:
+        sync.write("sync start")
+    sleep(0.5)
+    os.remove(os.path.dirname(CONFIG["Excel"]["target_table"])+"sync.txt")
+    print("SYNC COMPLETE")
+    global TARGET_TABLE, TARGET_TABLE_SHEET, TARGET_TABLE_WORKBOOK, BUFFER_TABLE, BUFFER_TABLE_SHEET, BUFFER_TABLE_WORKBOOK
+    message(__name__, "LOADING EXCEL")
+    TARGET_TABLE = win32com.client.Dispatch("Excel.Application")
+    try:
+        TARGET_TABLE.Visible = False
+    except:
+        pass
+    TARGET_TABLE_WORKBOOK = TARGET_TABLE.Workbooks.Open(
+        CONFIG["Excel"]["target_table"])
+    TARGET_TABLE_SHEET = TARGET_TABLE_WORKBOOK.Sheets(1)
+
+    BUFFER_TABLE = win32com.client.Dispatch("Excel.Application")
+    try:
+        BUFFER_TABLE.Visible = False
+    except:
+        pass
+    BUFFER_TABLE_WORKBOOK = BUFFER_TABLE.Workbooks.Open(
+        CONFIG["Excel"]["buffer_table"])
+    BUFFER_TABLE_SHEET = BUFFER_TABLE_WORKBOOK.Sheets(1)
+    message(__name__, "EXCEL LOADED")
+
+
+def clean_buffer_table():
+    try:
+        message(__name__, "CLEANING BUFFER TABLE")
+        used_range = BUFFER_TABLE_SHEET.UsedRange
+        last_row = used_range.Row + used_range.Rows.Count - 1
+        last_col = used_range.Column + used_range.Columns.Count - 1
+        BUFFER_TABLE_SHEET.Range(
+            BUFFER_TABLE_SHEET.Cells(1, 1),
+            BUFFER_TABLE_SHEET.Cells(last_row, last_col)
+        ).ClearContents()
+        BUFFER_TABLE_WORKBOOK.Save()
+        message(__name__, "ALL CLEAN")
+    except:
+        pass
+
+
+def excel_clean_up():
     message(__name__, "CLEAR UP START")
     try:
         TARGET_TABLE_WORKBOOK.Close(False)
@@ -30,32 +75,6 @@ def excel_atexit_clean_up():
     except:
         pass
     message(__name__, "CLEAN UP FINISH")
-
-
-def excel_init():
-    global EXCEL_INIT
-    if EXCEL_INIT == 0:
-        global TARGET_TABLE, TARGET_TABLE_SHEET, TARGET_TABLE_WORKBOOK, BUFFER_TABLE, BUFFER_TABLE_SHEET, BUFFER_TABLE_WORKBOOK
-        message(__name__, "LOADING EXCEL")
-        TARGET_TABLE = win32com.client.Dispatch("Excel.Application")
-        try:
-            TARGET_TABLE.Visible = False
-        except:
-            pass
-        TARGET_TABLE_WORKBOOK = TARGET_TABLE.Workbooks.Open(
-            CONFIG["Excel"]["target_table"])
-        TARGET_TABLE_SHEET = TARGET_TABLE_WORKBOOK.Sheets(1)
-
-        BUFFER_TABLE = win32com.client.Dispatch("Excel.Application")
-        try:
-            BUFFER_TABLE.Visible = False
-        except:
-            pass
-        BUFFER_TABLE_WORKBOOK = BUFFER_TABLE.Workbooks.Open(
-            CONFIG["Excel"]["buffer_table"])
-        BUFFER_TABLE_SHEET = BUFFER_TABLE_WORKBOOK.Sheets(1)
-        message(__name__, "EXCEL LOADED")
-        EXCEL_INIT = 1
 
 
 def get_DN_info(msg) -> dict:
@@ -88,11 +107,8 @@ def get_DN_info(msg) -> dict:
         return {}
 
 
-def check_new_DN():
-    message(__name__, "CLEANING BUFFER TABLE")
-    clean_excel()
-    message(__name__, "ALL CLEAN")
-
+def check_new_DN() -> list:
+    clean_buffer_table()
     message(__name__, "READING DN")
     emails = get_unread_mails()
     dn_info = []
@@ -110,71 +126,7 @@ def check_new_DN():
     return valid_dn
 
 
-def append_new_DN_to_excel(new_dn: list):
-    message(__name__, "APPENDING DN INFOMATION TO BUFFER TABLE")
-    for dn in new_dn:
-        try:
-            # search for the PB, get all possbile rows
-            source_row = GR_invoice_search(dn)
-            if source_row == 0:
-                continue
-            # for each row, copy to buffer, and edit data
-            # for source_row in source_rows:
-            target_row = find_next_blank_row()
-            copy_row(source_row, target_row)
-            edit_buffer_table(dn, target_row)
-        except Exception as e:
-            alert(__name__, get_line(), e)
-            continue
-    message(__name__, "DN INFORMATION ADDED ")
-    global EXCEL_INIT
-    EXCEL_INIT = 0
-    excel_atexit_clean_up()
-
-
-def PB_search(transaction: str | dict) -> list[int]:
-    if isinstance(transaction, str):
-        transaction = loads(transaction)
-
-    message(__name__, "SEARCHING FOR: {}".format(
-        transaction["PB"]))
-
-    PB_value = transaction["PB"]
-    NUM_value = int(transaction["NUM"])  # Compare as string
-
-    # Column C, Number of units from email
-    PB_col = TARGET_TABLE_SHEET.Columns(3)
-    row_nums = []
-
-    first_found = PB_col.Find(
-        What=PB_value,
-        LookIn=-4163,
-        LookAt=1,
-        SearchOrder=1,
-        SearchDirection=1
-    )
-
-    found = first_found
-    while found:
-        row = found.Row
-        num_in_row = int(TARGET_TABLE_SHEET.Cells(
-            row, 11).Value)
-
-        if num_in_row == NUM_value:
-            message(__name__, "MATCH FOUND: {}".format(row))
-            row_nums.append(row)
-
-        found = PB_col.FindNext(found)
-        if found is None or found.Address == first_found.Address:
-            message(__name__, "NO MATCH")
-            break
-
-    message(__name__, "SEARCH COMPLETE")
-
-    return row_nums
-
-
-def GR_invoice_search(transaction: str | dict) -> int:
+def invoice_search(transaction: str | dict) -> int:
     message(__name__, "SEARCHING FOR: {}".format(
         transaction["GR_NUMBER"]))
     GR_invoice = transaction["GR_NUMBER"]
@@ -186,7 +138,6 @@ def GR_invoice_search(transaction: str | dict) -> int:
         SearchOrder=1,
         SearchDirection=1
     )
-
     if res == None:
         message(__name__, "NO MATCH")
         return 0
@@ -248,9 +199,62 @@ def edit_buffer_table(transaction: str | dict, row_number: int) -> int:
     BUFFER_TABLE_WORKBOOK.Save()
 
 
-def clean_excel():
-    try:
-        BUFFER_TABLE_SHEET.Cells.Clear()
-        BUFFER_TABLE_WORKBOOK.Save()
-    except:
-        pass
+def append_new_DN_to_excel(new_dn: list):
+    excel_init()
+    message(__name__, "APPENDING DN INFOMATION TO BUFFER TABLE")
+    for dn in new_dn:
+        try:
+            source_row = invoice_search(dn)
+            if source_row != 0:
+                target_row = find_next_blank_row()
+                copy_row(source_row, target_row)
+                edit_buffer_table(dn, target_row)
+            else:
+                message(__name__, "INVOICE NOT FOUND, START PB SEARCH")
+                source_row = PB_search(dn)
+                if source_row == []:
+                    message(__name__, "PB SEARCH NO FOUND")
+                for row in source_row:
+                    target_row = find_next_blank_row()
+                    copy_row(source_row, target_row)
+                    edit_buffer_table(dn, target_row)
+        except Exception as e:
+            alert(__name__, get_line(), e)
+            continue
+    message(__name__, "DN INFORMATION ADDED ")
+    excel_clean_up()
+
+
+def PB_search(transaction: str | dict) -> list[int]:
+    if isinstance(transaction, str):
+        transaction = loads(transaction)
+    message(__name__, "SEARCHING FOR: {}".format(
+        transaction["PB"]))
+    PB_value = transaction["PB"]
+    NUM_value = int(transaction["NUM"])  # Compare as string
+    # Column C, Number of units from email
+    PB_col = TARGET_TABLE_SHEET.Columns(3)
+    row_nums = []
+    first_found = PB_col.Find(
+        What=PB_value,
+        LookIn=-4163,
+        LookAt=1,
+        SearchOrder=1,
+        SearchDirection=1
+    )
+    found = first_found
+    while found:
+        row = found.Row
+        num_in_row = int(TARGET_TABLE_SHEET.Cells(
+            row, 11).Value)
+
+        if num_in_row == NUM_value:
+            message(__name__, "MATCH FOUND: {}".format(row))
+            row_nums.append(row)
+
+        found = PB_col.FindNext(found)
+        if found is None or found.Address == first_found.Address:
+            message(__name__, "NO MATCH")
+            break
+    message(__name__, "SEARCH COMPLETE")
+    return row_nums

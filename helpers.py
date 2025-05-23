@@ -32,7 +32,6 @@ def message(func_name="", msg=""):
 
 
 def alert(func_name, line, msg):
-    system_operated_time = get_runtime()
     operate_hour, operate_min, operate_sec = get_runtime()
     print("[{}:{}:{}] {}:\t{}\t@Line: {}".format(str(operate_hour).rjust(2, "0"), str(operate_min).rjust(2, "0"),
           str(operate_sec).rjust(2, "0"), func_name, msg, line))

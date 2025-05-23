@@ -3,18 +3,16 @@ from outlook import *
 from helpers import *
 from GR import *
 from SFC import *
-import atexit
-
-atexit.register(excel_atexit_clean_up)
+from config import *
 
 while (1):
     message("main", "Please select a step to continue:\n\t\t\t"
             "1. Send DN request for a GR\n\t\t\t"
             "2. Check Email for new DN\n\t\t\t"
             "3. Build GR file\n\t\t\t"
-            "4. Build GR file from FeedFile\n\t\t\t"
-            "5. Look up Model information\n\t\t\t"
-            "6. Carton number look up\n\t\t\t"
+            "4. Build GR file from Feedfile\n\t\t\t"
+            "5. Model info look up\n\t\t\t"
+            "6. Working order number look up\n\t\t\t"
             "7. Apply ITN for a DN\n\t\t\t"
             "Enter quit to Quit")
     process = input("\t\t\t")
@@ -25,25 +23,36 @@ while (1):
                     "main", "Email not sent due to an exception happened while running")
             else:
                 message("main", "Email sent")
-
         case "2":
-            excel_init()
             append_new_DN_to_excel(check_new_DN())
             message("main", "DN update complete")
-
         case "3":
             build_GR()
             message("main", "GR file ready")
-
         case "4":
             build_GR_from_feedfile()
-
+            message("main", "GR file built")
         case "5":
             message("main", "Please enter the model number")
-            mo = input()
-            message(
-                "main", "Please enter the working order number, leave blank for all woking order number")
-            wo = input()
+            mo = ""
+            while True:
+                mo = input()
+                if mo == "quit" or re.match(MO_REGEX, mo) != None:
+                    break
+                else:
+                    message("main", "invalid MO")
+            if mo == "quit":
+                continue
+            message("main", "Please enter the working order number, blank for all")
+            wo = ""
+            while True:
+                wo = input()
+                if wo == "" or wo == "quit" or re.match(WO_REFEX, wo) != None:
+                    break
+                else:
+                    message("main", "invalid WO")
+            if wo == "quit":
+                continue
             data = mo_query(mo, wo)
             message("main", "Searching result:")
             for line in data:
@@ -52,18 +61,40 @@ while (1):
                     "{}\t\t\t\tCreate Date : {}".format(line["Mo_Number"], line["Model_Name"], line["Target_Qty"],
                                                         line["SN_Start"], line["SN_End"], line["Mo_Create_Date"]))
         case "6":
+            message(
+                "main", "Please enter the department: OQC, PACKING. (More might be added in Future)")
+            department = ""
+            while True:
+                department = input().upper()
+                if department == "QUIT" or department in ["OQC", "PACKING"]:
+                    break
+                else:
+                    message("main", "Invalid Department")
+            if department == "QUIT":
+                continue
             message("main", "Please enter the working order number")
-            data = carton_number(input())
-            carton_nums = set()
-            for line in data:
-                carton_nums.add(line["Carton NO"])
-                message(
-                    "main", " Carton Number : {}\t\t  Containter Number : {}\t\tIn Stataion Time : {}".format(
-                        line["Carton NO"], line["Container NO"],  line["In Station Time"]))
-            carton_nums = sorted(carton_nums)
-            message("main", "Below are Carton Numbers for CTRL CV \n")
-            for carton_num in carton_nums:
-                print(carton_num)
+            wo = ""
+            while True:
+                wo = input()
+                if wo == "" or wo == "quit" or re.match(WO_REFEX, wo) != None:
+                    break
+                else:
+                    message("main", "invalid WO")
+            if wo == "quit":
+                continue
+            data = WIP(wo, department)
+            if department == "OQC":
+                carton_nums = set()
+                for line in data:
+                    carton_nums.add(line["Carton NO"])
+                carton_nums = sorted(carton_nums)
+                message("main", "Below are Carton Numbers for CTRL CV \n")
+                for carton_num in carton_nums:
+                    print(carton_num)
+            elif department == "PACKING":
+                message("main", "Below are Serial Numbers for CTRL CV \n")
+                for line in data:
+                    print(line["Serial Number"])
             print()
         case "7":
             if request_for_ITN():
@@ -74,6 +105,5 @@ while (1):
         case "quit":
             message("main", "Program closing")
             break
-
         case _:
             continue

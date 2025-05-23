@@ -17,9 +17,7 @@ message(__name__, "OUTLOOK LOADED")
 
 
 def get_unread_mails() -> list:
-
     message(__name__, "READING EMAILS")
-
     # results buffer
     results = []
     # sort the mails by recv time
@@ -36,11 +34,9 @@ def get_unread_mails() -> list:
         if index > CONFIG["Outlook"]["NUM_OF_EMAILS_TO_READ"]:
             break
         results.append({"sender": mail.SenderName, "address": mail.SenderEmailAddress,
-                       "subject": mail.Subject, "content": mail.Body[:500]})
+                       "subject": mail.Subject, "content": mail.Body[:200]})
         index += 1
-
     message(__name__, "READING COMPLETE")
-
     return results
 
 
@@ -59,10 +55,10 @@ def request_for_ITN() -> bool:
                 break
         attachment_path = askopenfilename(title="Select file to attach")
         mail = OUTLOOK.CreateItem(0)
-        mail.To = CONFIG["DN"]["DN_TEST_ADDRESS"]
-        mail.CC = CONFIG["DN"]["DN_TEST_ADDRESS"]
-        # mail.To = CONFIG["ITN"]["ITN_mail_To"]
-        # mail.CC = CONFIG["ITN"]["ITN_mail_CC"]
+        # mail.To = CONFIG["DN"]["DN_TEST_ADDRESS"]
+        # mail.CC = CONFIG["DN"]["DN_TEST_ADDRESS"]
+        mail.To = CONFIG["ITN"]["ITN_mail_To"]
+        mail.CC = CONFIG["ITN"]["ITN_mail_CC"]
         mail.Subject = CONFIG["ITN"]["ITN_SUBJECT"].format(dn)
         mail.Body = CONFIG["ITN"]["ITN_BODY"].format(
             dn, CONFIG["Outlook"]["USER"])
@@ -87,29 +83,23 @@ def request_for_DN() -> str:
         # PB-61258_179x_5202A50110
         file_data = file_name.split("_")
         # ["PB-61258","179x","5202A50110"]
-
         # create a new email
         mail = OUTLOOK.CreateItem(0)
-
         # who to send to
-        # mail.To = CONFIG["DN"]["DN_mail_To"]
-        # mail.CC = CONFIG["DN"]["DN_mail_CC"]
-        mail.To = CONFIG["DN"]["DN_TEST_ADDRESS"]
-        mail.CC = CONFIG["DN"]["DN_TEST_ADDRESS"]
+        mail.To = CONFIG["DN"]["DN_mail_To"]
+        mail.CC = CONFIG["DN"]["DN_mail_CC"]
+        # mail.To = CONFIG["DN"]["DN_TEST_ADDRESS"]
+        # mail.CC = CONFIG["DN"]["DN_TEST_ADDRESS"]
         # subject
         mail.Subject = CONFIG["DN"]["DN_SUBJECT"].format(
             file_data[1], file_data[0], file_data[2].replace(".xlsx", ""))
-
         # get HTML body from the config file, fill with data read from excel
         mail.HTMLBody = CONFIG["DN"]["DN_HTML_BODY"].format(
             file_data[1], file_data[0], file_data[2].replace(".xlsx", ""), get_GR_status(attachment_path), CONFIG["Outlook"]["USER"])
-
         # add attachment
         mail.Attachments.Add(attachment_path)
-
         # send
         mail.Send()
-
         # return name
         return file_data[0]
     except:
@@ -118,27 +108,22 @@ def request_for_DN() -> str:
 
 def get_GR_status(path: str) -> str:
     message(__name__, "LOADING GR FILE")
-
     # get excel
     excel = win32com.client.Dispatch("excel.Application")
     try:
         excel.Visible = False
     except:
         pass
-
     # open the selected excel from request DN
     workbook = excel.Workbooks.Open(path)
-
     # Get the last sheet
     sheet = workbook.Sheets(workbook.Sheets.Count)
     message(__name__, "GR FILE LOADED")
     message(__name__, "READING SN")
-
     # Read A and B columns until A has no GR_data(sometime we have more pass than SN)
     row = 2
     GR_data = []
     has_config = (sheet.Cells(1, 3).Value != None)
-
     # read column A and B
     while True:
         a_value = sheet.Cells(row, 1).Value
@@ -146,21 +131,17 @@ def get_GR_status(path: str) -> str:
         c_value = ""
         if sheet.Cells(row, 3).Value is not None:
             c_value = sheet.Cells(row, 3).Value
-
         # Stop when column A is empty
         if a_value is None:
             break
-
         # Convert A to string to preserve formatting
         if c_value == "":
             GR_data.append(((str(a_value))[:-2], b_value))
         else:
             GR_data.append(((str(a_value))[:-2], b_value, (str(c_value))[:-2]))
         row += 1
-
     # Close excel workbook without saving changes
     workbook.Close(SaveChanges=False)
-
     # close excel to release memory
     excel.Quit()
     message(__name__, "READING COMPLETE, {} ROWS READ".format(len(GR_data)))
@@ -170,36 +151,27 @@ def get_GR_status(path: str) -> str:
 
 
 def build_html_table(data: list, has_config=0) -> str:
-
     message(__name__, "BUILDING SN STT TABLE")
-
     table_style = "border-collapse: collapse;"
     cell_style = "border: 1px solid black; padding: 4px; text-align: center;"
     rows = []
     if not has_config:
-
         header = f"<tr><th style='{cell_style}'>SN</th><th style='{cell_style}'>Status</th></tr>"
-
         for a, b in data:
-
             rows.append(
                 f"<tr><td style='{cell_style}'>{a}</td><td style='{cell_style}'>{b}</td></tr>")
-
         message(__name__, "TABLE BUILT")
     else:
         header = f"<tr><th style='{cell_style}'>SN</th><th style='{cell_style}'>Status</th><th style='{cell_style}'>Config</th></tr>"
-
         for a, b, c in data:
-
             rows.append(
                 f"<tr><td style='{cell_style}'>{a}</td><td style='{cell_style}'>{b}</td><td style='{cell_style}'>{c}</td></tr>")
-
     return f"""
     <html>
         <body>
         <table style="{table_style}">
             {header}
-            {"F".join(rows)}
+            {"".join(rows)}
         </table>
         </body>
     </html>
