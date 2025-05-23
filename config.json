@@ -15,7 +15,14 @@
         "DN_HTML_BODY": "",
         "GR_ERROR_BODY": ""
     },
+    "ITN": {
+        "ITN_mail_To": "",
+        "ITN_Mail_CC": "",
+        "ITN_SUBJECT": "",
+        "ITN_BODY": ""
+    },
     "Excel": {
+        "target_table_folder": "",
         "target_table": "",
         "buffer_table": ""
     },
@@ -29,13 +36,7 @@
         "mo_query_form": {
             "modelName": "",
             "modelNameSubmit": "Query"
-        }
-    },    
-    "ITN": {
-        "ITN_mail_To": "",
-        "ITN_Mail_CC": "",
-        "ITN_SUBJECT": "",
-        "ITN_BODY": "",
-        "WIP_OQC_api": ""
-    },
+        },
+        "WIP_api": ""
+    }
 }
