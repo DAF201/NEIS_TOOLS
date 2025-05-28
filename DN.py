@@ -8,6 +8,7 @@ from time import sleep
 import os
 
 openai.api_key = CONFIG["AI"]["openai_key"]
+# incase the DN module is mostly working with the same excel workbooks
 TARGET_TABLE = TARGET_TABLE_WORKBOOK = TARGET_TABLE_SHEET = BUFFER_TABLE = BUFFER_TABLE_WORKBOOK = BUFFER_TABLE_SHEET = ""
 
 
@@ -15,7 +16,7 @@ def excel_init():
     print("SYNCING ONEDRIVE")
     with open(os.path.dirname(CONFIG["Excel"]["target_table"])+"sync.txt", "w") as sync:
         sync.write("sync start")
-    sleep(0.5)
+    sleep(1)
     os.remove(os.path.dirname(CONFIG["Excel"]["target_table"])+"sync.txt")
     print("SYNC COMPLETE")
     global TARGET_TABLE, TARGET_TABLE_SHEET, TARGET_TABLE_WORKBOOK, BUFFER_TABLE, BUFFER_TABLE_SHEET, BUFFER_TABLE_WORKBOOK
@@ -28,7 +29,6 @@ def excel_init():
     TARGET_TABLE_WORKBOOK = TARGET_TABLE.Workbooks.Open(
         CONFIG["Excel"]["target_table"])
     TARGET_TABLE_SHEET = TARGET_TABLE_WORKBOOK.Sheets(1)
-
     BUFFER_TABLE = win32com.client.Dispatch("Excel.Application")
     try:
         BUFFER_TABLE.Visible = False

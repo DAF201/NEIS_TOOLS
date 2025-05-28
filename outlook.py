@@ -13,10 +13,9 @@ OUTLOOK = win32com.client.Dispatch("Outlook.Application")
 OUTLOOK_INBOX = OUTLOOK.GETNAMESPACE("MAPI").GetDefaultFolder(6).Items
 message(__name__, "OUTLOOK LOADED")
 
-# get the lastest mails, for check DN use
-
 
 def get_unread_mails() -> list:
+    """get the latest emails, 20 by default"""
     message(__name__, "READING EMAILS")
     # results buffer
     results = []

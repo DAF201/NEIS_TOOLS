@@ -8,7 +8,7 @@ from config import *
 while (1):
     message("main", "Please select a step to continue:\n\t\t\t"
             "1. Send DN request for a GR\n\t\t\t"
-            "2. Check Email for new DN\n\t\t\t"
+            "2. Check Email for new DN (in progress, do not use) \n\t\t\t"
             "3. Build GR file\n\t\t\t"
             "4. Build GR file from Feedfile\n\t\t\t"
             "5. Model info look up\n\t\t\t"
