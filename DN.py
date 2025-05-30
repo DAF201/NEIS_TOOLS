@@ -13,27 +13,35 @@ TARGET_TABLE = TARGET_TABLE_WORKBOOK = TARGET_TABLE_SHEET = BUFFER_TABLE = BUFFE
 
 
 def excel_init():
+    """because the onedrive target table is not uptodate, so create a file to trigger sync then delete it"""
     print("SYNCING ONEDRIVE")
     with open(os.path.dirname(CONFIG["Excel"]["target_table"])+"sync.txt", "w") as sync:
         sync.write("sync start")
     sleep(1)
     os.remove(os.path.dirname(CONFIG["Excel"]["target_table"])+"sync.txt")
     print("SYNC COMPLETE")
+
     global TARGET_TABLE, TARGET_TABLE_SHEET, TARGET_TABLE_WORKBOOK, BUFFER_TABLE, BUFFER_TABLE_SHEET, BUFFER_TABLE_WORKBOOK
+
     message(__name__, "LOADING EXCEL")
+
     TARGET_TABLE = win32com.client.Dispatch("Excel.Application")
+
     try:
         TARGET_TABLE.Visible = False
     except:
         pass
+
     TARGET_TABLE_WORKBOOK = TARGET_TABLE.Workbooks.Open(
         CONFIG["Excel"]["target_table"])
     TARGET_TABLE_SHEET = TARGET_TABLE_WORKBOOK.Sheets(1)
     BUFFER_TABLE = win32com.client.Dispatch("Excel.Application")
+
     try:
         BUFFER_TABLE.Visible = False
     except:
         pass
+
     BUFFER_TABLE_WORKBOOK = BUFFER_TABLE.Workbooks.Open(
         CONFIG["Excel"]["buffer_table"])
     BUFFER_TABLE_SHEET = BUFFER_TABLE_WORKBOOK.Sheets(1)
@@ -41,6 +49,7 @@ def excel_init():
 
 
 def clean_buffer_table():
+    """clear buffer workbook to write new data in"""
     try:
         message(__name__, "CLEANING BUFFER TABLE")
         used_range = BUFFER_TABLE_SHEET.UsedRange
@@ -57,27 +66,36 @@ def clean_buffer_table():
 
 
 def excel_clean_up():
+    """clean up excel objects to save some memeory"""
+
     message(__name__, "CLEAR UP START")
+
     try:
         TARGET_TABLE_WORKBOOK.Close(False)
     except:
         pass
+
     try:
         TARGET_TABLE.Quit()
     except:
         pass
+
     try:
         BUFFER_TABLE_WORKBOOK.Close(False)
     except:
         pass
+
     try:
         BUFFER_TABLE.Quit()
     except:
         pass
+
     message(__name__, "CLEAN UP FINISH")
 
 
 def get_DN_info(msg) -> dict:
+    """extract data from email"""
+
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -101,6 +119,7 @@ def get_DN_info(msg) -> dict:
         ],
         temperature=0
     )
+
     try:
         return loads(response["choices"][0]["message"]["content"])
     except:
@@ -108,13 +127,19 @@ def get_DN_info(msg) -> dict:
 
 
 def check_new_DN() -> list:
+    """get the new DN from the email then write to buffer"""
+
     clean_buffer_table()
+
     message(__name__, "READING DN")
+
     emails = get_unread_mails()
     dn_info = []
     valid_dn = []
+
     for email in emails:
         dn_info.append(get_DN_info(str(email)))
+
     for dn in dn_info:
         try:
             if dn["VALID"] == "1":
@@ -122,15 +147,23 @@ def check_new_DN() -> list:
                 valid_dn.append(dn)
         except:
             continue
+
     message(__name__, "READING COMPLETE")
+
     return valid_dn
 
 
 def invoice_search(transaction: str | dict) -> int:
+    """search for the row number based on invoice number"""
+
     message(__name__, "SEARCHING FOR: {}".format(
         transaction["GR_NUMBER"]))
+
     GR_invoice = transaction["GR_NUMBER"]
+
+    # this one can be fixed since target table will not change
     invoice_col = TARGET_TABLE_SHEET.Columns(22)
+
     res = invoice_col.Find(
         What=GR_invoice,
         LookIn=-4163,
@@ -138,6 +171,8 @@ def invoice_search(transaction: str | dict) -> int:
         SearchOrder=1,
         SearchDirection=1
     )
+
+    # if no find return 0 since there is no 0 row anyway
     if res == None:
         message(__name__, "NO MATCH")
         return 0
@@ -147,7 +182,9 @@ def invoice_search(transaction: str | dict) -> int:
 
 
 def find_next_blank_row(start_row=1, max_columns=26) -> int:
+    """find the next row that is blank in the buffer table"""
     row = start_row
+
     while True:
         empty = True
         for col in range(1, max_columns + 1):
@@ -160,13 +197,16 @@ def find_next_blank_row(start_row=1, max_columns=26) -> int:
 
 
 def copy_row(source_row_num: int, target_row_num: int) -> None:
-    # copy the row from target table to the buffer table
-    max_col = TARGET_TABLE_SHEET.UsedRange.Columns.Count  # Or hardcode if known
+    """copy from target table to buffer table"""
+
+    # to determine how many cols to copy
+    max_col = TARGET_TABLE_SHEET.UsedRange.Columns.Count
 
     # Manually copy each cell"s value
     for col in range(1, max_col + 1):
         BUFFER_TABLE_SHEET.Cells(target_row_num, col).Value = TARGET_TABLE_SHEET.Cells(
             source_row_num, col).Value
+
     # Save and clean up
     BUFFER_TABLE_WORKBOOK.Save()
 
@@ -226,12 +266,17 @@ def append_new_DN_to_excel(new_dn: list):
 
 
 def PB_search(transaction: str | dict) -> list[int]:
+    """nolonger maintanced, only when the search invoice failed"""
+
     if isinstance(transaction, str):
         transaction = loads(transaction)
+
     message(__name__, "SEARCHING FOR: {}".format(
         transaction["PB"]))
+
     PB_value = transaction["PB"]
-    NUM_value = int(transaction["NUM"])  # Compare as string
+    NUM_value = int(transaction["NUM"])
+
     # Column C, Number of units from email
     PB_col = TARGET_TABLE_SHEET.Columns(3)
     row_nums = []
@@ -242,7 +287,9 @@ def PB_search(transaction: str | dict) -> list[int]:
         SearchOrder=1,
         SearchDirection=1
     )
+
     found = first_found
+
     while found:
         row = found.Row
         num_in_row = int(TARGET_TABLE_SHEET.Cells(
@@ -255,6 +302,8 @@ def PB_search(transaction: str | dict) -> list[int]:
         found = PB_col.FindNext(found)
         if found is None or found.Address == first_found.Address:
             message(__name__, "NO MATCH")
+
             break
     message(__name__, "SEARCH COMPLETE")
+
     return row_nums

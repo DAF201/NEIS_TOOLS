@@ -41,10 +41,10 @@ def build_GR_from_feedfile() -> None:
 
         while (True):
             sn_start = input(
-                "please enter strating serial number, enter quit to Quit\n")
+                "please enter starting serial number, enter quit to Quit\n")
             if sn_start.lower() == "quit":
                 message(__name__, "BUILDING CANCELLED")
-                gr_file_workbook.Close()
+                gr_file_workbook.Close(False)
                 gr_file.Quit()
                 return
 
@@ -134,11 +134,14 @@ def build_GR() -> None:
 
     # find SN column since I just found the SN column is not in a fixed place
     sn_col = find_target_col(gr_file_sheet2, "SERIAL_NUMBER")
+
     # may get float like str, so convert to float first then int
     sn_start = int(float(gr_file_sheet2.Cells(2, sn_col).Value))
+
     # ACTIVITY_QTY is always int like, and -1 since start already take 1 place
     sn_end = sn_start+int(gr_file_sheet2.Cells(2, find_target_col(
         gr_file_workbook.Sheets(2), "ACTIVITY_QTY")).Value)-1
+
     print(sn_start, sn_end)
 
     # remove contents of the sheet 3
@@ -149,28 +152,38 @@ def build_GR() -> None:
     gr_file_sheet3.Cells(1, 2).Value = "STT"
 
     message(__name__, "PLEASE START SCANNING SN.ENTER \"quit\" TO QUIT. WHEN FINISH, PRESS ENTER TO CONTINUE")
+
     # a set can avoid duplicated SN
     sn_set = set()
+
     while True:
         sn = input()
         try:
             if sn.lower() == "quit":
                 message(__name__, "SCANNING STOPPED BY USER")
-                gr_file_workbook.Close()
-                gr_file.Quit()
-                return
+                try:
+                    gr_file_workbook.Close(False)
+                    gr_file.Quit()
+                except:
+                    pass
+                finally:
+                    return
+
             # end of scanning
             if sn == "":
                 message(
                     __name__, "{} UNITS, CORRECT? (PRESS ENTER TO CONTINUE, quit to Quit, ANYTHING ELSE TO SCAN MORE)".format(len(sn_set)))
+
                 if input() == "":
                     break
                 else:
                     continue
+
             if int(sn) > sn_end or int(sn) < sn_start:
                 alert_beep("SN NOT IN RANGE, PLEASE RESCAN LAST BOARD")
                 continue
             sn_set.add(int(sn))
+
         # if sn cannot be convert to int (small sticker near the SN)
         except:
             alert_beep("SN NOT VALID, PLEASE RESCAN LAST BOARD")
@@ -234,21 +247,27 @@ def build_GR() -> None:
         gr_file_sheet1.Columns(formula_cell.Column).Delete()
     except:
         pass
+
     now = datetime.now()
     today_date = now.strftime("%m")+now.strftime("%d")
+
     # file name to save
     final_GR_file_name = r"{}{} {}_{}x_{}.xlsx".format(gr_file_base_dir, today_date, pb_value, str(
         len(sn_list)), CONFIG["GR"]["invoice_header"]+str(CONFIG["GR"]["invoice_record"]).rjust(4, "0"))
+
     # save data
     gr_file_workbook.Save()
     gr_file_workbook.Close(False)
     gr_file.Quit()
+
     # save next invoice
     CONFIG["GR"]["invoice_record"] = CONFIG["GR"]["invoice_record"]+1
     update_config()
+
     # rename file
     rename(GR_file_path, final_GR_file_name)
     message(__name__, "GR FILE BUILDING COMPLETE, FIEL CREATE: {}".format(
         final_GR_file_name))
+
     # now go to do the GR on NV computer
     # exit(0)

@@ -4,8 +4,9 @@ from helpers import *
 from GR import *
 from SFC import *
 from config import *
-
+from report import *
 while (1):
+
     message("main", "Please select a step to continue:\n\t\t\t"
             "1. Send DN request for a GR\n\t\t\t"
             "2. Check Email for new DN (in progress, do not use) \n\t\t\t"
@@ -14,8 +15,10 @@ while (1):
             "5. Model info look up\n\t\t\t"
             "6. Working order number look up\n\t\t\t"
             "7. Apply ITN for a DN\n\t\t\t"
+            "0. Create Report\n\t\t\t"
             "Enter quit to Quit")
     process = input("\t\t\t")
+
     match(process):
         case "1":
             if request_for_DN() == "":
@@ -23,15 +26,19 @@ while (1):
                     "main", "Email not sent due to an exception happened while running")
             else:
                 message("main", "Email sent")
+
         case "2":
             append_new_DN_to_excel(check_new_DN())
             message("main", "DN update complete")
+
         case "3":
             build_GR()
             message("main", "GR file ready")
+
         case "4":
             build_GR_from_feedfile()
             message("main", "GR file built")
+
         case "5":
             message("main", "Please enter the model number")
             mo = ""
@@ -60,6 +67,7 @@ while (1):
                     "main", "\n\t\t\tWorking Order : {}\t\t\tModel : {}\t\t\tTarget Quantity : {}\n\t\t\tSN Start : {}\t\t\tSN End : "
                     "{}\t\t\t\tCreate Date : {}".format(line["Mo_Number"], line["Model_Name"], line["Target_Qty"],
                                                         line["SN_Start"], line["SN_End"], line["Mo_Create_Date"]))
+
         case "6":
             message(
                 "main", "Please enter the department: OQC, PACKING. (More might be added in Future)")
@@ -96,6 +104,7 @@ while (1):
                 for line in data:
                     print(line["Serial Number"])
             print()
+
         case "7":
             if request_for_ITN():
                 message("main", "ITN request sent")
@@ -105,5 +114,10 @@ while (1):
         case "quit":
             message("main", "Program closing")
             break
+
+        case "0":
+            message("main", "Start create report")
+            create_report()
+
         case _:
             continue
