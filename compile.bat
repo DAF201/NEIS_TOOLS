@@ -1,0 +1,1 @@
+g++ main.cpp -std=c++14 -lole32 -loleaut32 -luuid -lcomdlg32 -static
