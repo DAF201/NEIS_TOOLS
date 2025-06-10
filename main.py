@@ -5,6 +5,7 @@ from GR import *
 from SFC import *
 from config import *
 from report import *
+from pod import *
 while (1):
 
     message("main", "Please select a step to continue:\n\t\t\t"
@@ -15,6 +16,8 @@ while (1):
             "5. Model info look up\n\t\t\t"
             "6. Working order number look up\n\t\t\t"
             "7. Apply ITN for a DN\n\t\t\t"
+            "8. Product Tracking by SN\n\t\t\t"
+            "9. POD generate\n\t\t\t"
             "0. Create Report\n\t\t\t"
             "Enter quit to Quit")
     process = input("\t\t\t")
@@ -110,6 +113,25 @@ while (1):
                 message("main", "ITN request sent")
             else:
                 message("main", "ITN request not sent")
+
+        case "8":
+            message("main", "Please enter the working order number")
+            res = SN_look_up(input("\t\t\t"))
+            if res == {}:
+                message("main", "cancelled")
+            else:
+                print("Serial Number:\t{}\t\t\tPBR:\t{}".format(
+                    res["SN"][1:-1], res["PBR"]))
+                print("Working Order Number:\t{}\t\t\tPart Number:\t{}".format(
+                    res["MO_Number"], res["Model_Name"]))
+                print(
+                    "Next Station:\t{}\t\t\tNPI-OUT:\t{}".format(res["Next Station"], res["NPI OUT"]))
+                if res.get("cartoon_id") != None:
+                    print("Cartoon ID:\t{}".format(res["cartoon_id"]))
+
+        case "9":
+            message("main", "Downloading POD")
+            make_pod()
 
         case "quit":
             message("main", "Program closing")

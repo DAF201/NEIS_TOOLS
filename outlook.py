@@ -14,6 +14,29 @@ OUTLOOK_INBOX = OUTLOOK.GETNAMESPACE("MAPI").GetDefaultFolder(6).Items
 message(__name__, "OUTLOOK LOADED")
 
 
+def get_scanned_pdf() -> list:
+    """get the scanned pdf from outlook, return as list"""
+    message(__name__, "READING EMAILS FOR SCANNING RESULTS")
+    results = []
+    OUTLOOK_INBOX.Sort("[ReceivedTime]", True)
+    mails = [OUTLOOK_INBOX[i]
+             for i in range(CONFIG["Outlook"]["NUM_OF_PODS_TO_READ"])]
+    index = 0
+    for mail in mails:
+        if mail.Class != 43:
+            continue
+        if mail.Attachments.Count == 1:
+            attachment = mail.Attachments.Item(1)
+            if attachment.FileName.lower().endswith(".pdf"):
+                mail.Attachments.Item(1).SaveAsFile(
+                    path.join(CONFIG["POD"]["buffer_path"], attachment.FileName))
+                results.append(
+                    path.join(CONFIG["POD"]["buffer_path"], attachment.FileName))
+                index += 1
+    message(__name__, "READING COMPLETE, {} PDF FOUND".format(index))
+    return results
+
+
 def get_unread_mails() -> list:
     """get the latest emails, 20 by default"""
     message(__name__, "READING EMAILS")
