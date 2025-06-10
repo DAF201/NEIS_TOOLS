@@ -5,7 +5,8 @@
     "Outlook": {
         "THIS_ADDRESS": "",
         "USER": "",
-        "NUM_OF_EMAILS_TO_READ": 20
+        "NUM_OF_EMAILS_TO_READ": 20,
+        "NUM_OF_PODS_TO_READ": 5
     },
     "DN": {
         "DN_TEST_ADDRESS": "",
@@ -17,26 +18,42 @@
     },
     "ITN": {
         "ITN_mail_To": "",
-        "ITN_Mail_CC": "",
+        "ITN_mail_CC": "",
         "ITN_SUBJECT": "",
         "ITN_BODY": ""
     },
     "Excel": {
         "target_table_folder": "",
         "target_table": "",
-        "buffer_table": ""
+        "buffer_table": "",
+        "report_table": ""
     },
     "GR": {
         "invoice_header": "",
-        "invoice_record": 0
+        "invoice_record": 
+    },
+    "POD": {
+        "save_path": "",
+        "buffer_path": ""
     },
     "SFC": {
         "mo_query_method": "POST",
         "mo_query_api": "",
         "mo_query_form": {
             "modelName": "",
-            "modelNameSubmit": "Query"
+            "modelNameSubmit": ""
         },
-        "WIP_api": ""
+        "WIP_api": "",
+        "product_tracking": {
+            "product_tracking_method": "POST",
+            "product_tracking_api": "",
+            "product_tracking_form": {
+                "T_SN": ""
+            }
+        }
+    },
+    "OCR": {
+        "tesseract_cmd": "",
+        "poppler_path": ""
     }
 }
