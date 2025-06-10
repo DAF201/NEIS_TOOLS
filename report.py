@@ -4,7 +4,6 @@ import os
 import win32com.client
 from config import CONFIG
 from datetime import datetime
-import re
 
 TARGET_TABLE = TARGET_TABLE_WORKBOOK = TARGET_TABLE_SHEET = ""
 REPORT_TABLE = REPORT_TABLE_WORKBOOK = REPORT_TABLE_SHEET = ""
@@ -118,7 +117,7 @@ def create_report():
             REPORT_TABLE_SHEET.Cells(
                 report_row_index, 8).Value = TARGET_TABLE_SHEET.Cells(current_row, 12).Value
 
-            # Vendor Pooled? GI?
+            # Vendor Pooled? PGI?
             if TARGET_TABLE_SHEET.Cells(current_row, 12).Value == "FXSJ":
                 REPORT_TABLE_SHEET.Cells(
                     report_row_index, 9).Value = "Yes"

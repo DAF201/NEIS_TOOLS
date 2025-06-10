@@ -51,9 +51,10 @@ def get_today_date() -> str:
 def file_search(directory, key):
     res = []
     for file in glob(path.join(directory, "*.*")):
-        if key in file:
+        if str(key) in file:
             res.append(path.abspath(file))
     return res
+
 
 pytesseract.pytesseract.tesseract_cmd = r".\Tesseract-OCR\tesseract.exe"
 poppler_path = r".\Library\bin"

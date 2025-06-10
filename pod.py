@@ -32,7 +32,6 @@ def make_pod() -> None:
             amount = search(OCR_FXSJ_AMOUNT_REGEX, page)
             pgi = search(OCR_FXSJ_PGI_REGEX, page)
             pb = search(OCR_FXSJ_PB_REGEX, page)
-            print(amount, pgi, pb)
             if amount != None and pgi != None and pb != None:
                 file_data["DN"] = "FXSJ"
                 file_data["AMOUNT"] = amount.group(0)[3:]
